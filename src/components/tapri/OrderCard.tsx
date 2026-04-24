@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Clock, Phone, User, ChevronRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { type Order, type OrderStatus, STATUS_META, STATUS_FLOW } from '@/lib/tapri-data';
+import { TeaFillProgress } from './TeaFillProgress';
+import { PickedUpStamp } from './PickedUpStamp';
 
 interface OrderCardProps {
   order: Order;
@@ -24,44 +26,61 @@ const useCountdown = (target: string) => {
   return { label: `${mins}:${String(secs).padStart(2, '0')}`, overdue: diff < 0, mins };
 };
 
+const STAGE_BY_STATUS: Record<OrderStatus, 0 | 1 | 2 | 3> = {
+  pending: 0,
+  preparing: 1,
+  ready: 2,
+  completed: 3,
+};
+
 export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCardProps) => {
   const { label, overdue, mins } = useCountdown(order.pickupTime);
   const isUrgent = order.status !== 'completed' && order.status !== 'ready' && (order.urgent || overdue || mins <= 5);
   const meta = STATUS_META[order.status];
   const nextStatus = STATUS_FLOW[Math.min(STATUS_FLOW.indexOf(order.status) + 1, STATUS_FLOW.length - 1)];
   const totalQty = order.items.reduce((a, b) => a + b.qty, 0);
-  const hasTea = order.items.some(i => i.id.includes('chai') || i.id.includes('tea') || i.id === 'coffee');
-  const isActive = order.status === 'preparing' || order.status === 'pending';
+  const isBrewing = order.status === 'preparing';
+  const isPickedUp = order.status === 'completed';
+
+  // Show stamp briefly when transitioning into completed within this card's lifetime
+  const [showStamp, setShowStamp] = useState(isPickedUp);
+  const prev = useRef(order.status);
+  useEffect(() => {
+    if (prev.current !== 'completed' && order.status === 'completed') {
+      setShowStamp(true);
+    }
+    prev.current = order.status;
+  }, [order.status]);
 
   return (
     <div
       draggable
       onDragStart={() => onDragStart(order.id)}
-      className={`paper-card rounded-2xl p-4 cursor-grab active:cursor-grabbing transition-all hover:-translate-y-1 hover:shadow-warm animate-bounce-in ${
-        isUrgent ? 'urgent-glow border-urgent/50' : ''
-      }`}
+      className={`relative paper-card rounded-2xl p-4 cursor-grab active:cursor-grabbing transition-all hover:-translate-y-1 hover:shadow-warm animate-bounce-in ${
+        isUrgent ? 'urgent-glow border-urgent/60 border-2' : ''
+      } ${isPickedUp ? 'opacity-90' : ''}`}
     >
+      {showStamp && <PickedUpStamp />}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-start gap-2 min-w-0">
-          {hasTea && isActive && (
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-chai flex items-center justify-center shrink-0">
-              <span className="text-lg">☕</span>
-              <span className="steam" />
-              <span className="steam steam-2" />
-            </div>
-          )}
+        <div className="flex items-start gap-2.5 min-w-0">
+          <TeaFillProgress stage={STAGE_BY_STATUS[order.status]} brewing={isBrewing} />
           <div className="min-w-0">
-            <h3 className="font-display font-bold text-chai-deep truncate">{order.groupName}</h3>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><User className="w-3 h-3" />{order.customerName}</span>
+            <h3 className="font-display font-extrabold text-chai-deep uppercase tracking-wide truncate text-sm">
+              {order.groupName}
+            </h3>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <User className="w-3 h-3" />
+              <span className="truncate">{order.customerName}</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Phone className="w-3 h-3" />{order.phone}
+              <Phone className="w-3 h-3" />
+              {order.phone}
             </div>
           </div>
         </div>
-        <Badge variant="outline" className={`${meta.color} text-xs font-bold shrink-0`}>
+        <Badge variant="outline" className={`${meta.color} text-[10px] font-bold shrink-0 uppercase tracking-wider`}>
           <span className={`w-1.5 h-1.5 rounded-full mr-1 ${meta.dot}`} />
           {meta.label}
         </Badge>
@@ -104,9 +123,9 @@ export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCard
                 : 'bg-gradient-chai text-cream hover:opacity-90'
             }`}
           >
-            {order.status === 'pending' && 'Start Preparing'}
+            {order.status === 'pending' && 'Start Brewing'}
             {order.status === 'preparing' && 'Mark Ready'}
-            {order.status === 'ready' && 'Complete'}
+            {order.status === 'ready' && 'Picked Up ✓'}
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         ) : (
