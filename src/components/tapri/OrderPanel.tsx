@@ -15,6 +15,7 @@ import {
 
 interface OrderPanelProps {
   onPlace: (o: Order) => void;
+  onPopper?: () => void;
 }
 
 export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
