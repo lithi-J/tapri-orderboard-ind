@@ -1,10 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Plus, Minus, Send, Sparkles, RotateCw } from 'lucide-react';
+import { Plus, Minus, Send, Zap, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MENU, CATEGORIES, SUGGESTIONS, type Order } from '@/lib/tapri-data';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface OrderPanelProps {
   onPlace: (o: Order) => void;
@@ -83,9 +90,31 @@ export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
 
   return (
     <aside className="paper-card rounded-2xl p-4 md:p-5 flex flex-col gap-4 h-fit lg:sticky lg:top-24">
-      <div>
-        <h2 className="font-display text-xl font-bold text-chai-deep">Place Order</h2>
-        <p className="font-handwritten text-chai text-base -mt-0.5">Tap, count, send 🚀</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-xl font-bold text-chai-deep">Place Order</h2>
+          <p className="font-handwritten text-chai text-base -mt-0.5">Tap, count, send 🚀</p>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="icon" className="border-chai/30 text-chai hover:bg-chai/10">
+              <QrCode className="w-5 h-5" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="paper-card">
+            <DialogHeader>
+              <DialogTitle className="text-chai-deep">Scan to Order ☕</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className="w-56 h-56 rounded-xl bg-cream border-4 border-chai/30 p-3 grid grid-cols-8 grid-rows-8 gap-0.5">
+                {Array.from({ length: 64 }).map((_, i) => (
+                  <div key={i} className={`rounded-[2px] ${Math.random() > 0.5 ? 'bg-chai-deep' : 'bg-transparent'}`} />
+                ))}
+              </div>
+              <p className="font-handwritten text-xl text-chai">Scan to skip the queue!</p>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Category tabs */}
@@ -152,59 +181,23 @@ export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
         </div>
       </div>
 
-      {/* Smart suggestion - dark featured card */}
-      <div className="rounded-2xl p-4 bg-chai-deep border-2 border-saffron/40 shadow-warm">
+      {/* Smart suggestions */}
+      <div className="chalkboard rounded-xl p-3">
         <div className="flex items-center gap-1.5 mb-2">
-          <Sparkles className="w-4 h-4 text-saffron" />
-          <span className="text-saffron text-xs font-bold uppercase tracking-widest">Smart Suggestion</span>
+          <Zap className="w-4 h-4 text-saffron" />
+          <span className="font-handwritten text-saffron text-lg leading-none">Smart Suggestions</span>
         </div>
-        <p className="font-handwritten text-cream text-xl leading-snug text-center mb-3">
-          "{SUGGESTIONS[0].group.split(' ')[0]} usually orders 50 teas at 4 PM"
-        </p>
-        <button
-          onClick={() => applySuggestion(SUGGESTIONS[0].presetItems, SUGGESTIONS[0].group)}
-          className="w-full py-3 rounded-full bg-saffron hover:bg-saffron/90 text-chai-deep font-bold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-card"
-        >
-          <RotateCw className="w-4 h-4" />
-          Quick Reorder · 50 ☕
-        </button>
-        <div className="mt-3 pt-3 border-t border-cream/10 space-y-1.5">
-          {SUGGESTIONS.slice(1).map(s => (
+        <div className="space-y-1.5">
+          {SUGGESTIONS.map(s => (
             <button
               key={s.group}
               onClick={() => applySuggestion(s.presetItems, s.group)}
-              className="w-full text-left text-xs text-cream/80 hover:text-saffron transition py-1"
+              className="w-full text-left text-xs text-cream/90 hover:text-saffron transition py-1 border-b border-cream/10 last:border-0"
             >
               <div className="font-semibold">{s.group}</div>
               <div className="opacity-70 text-[11px]">{s.items}</div>
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* Scan to Order */}
-      <div className="paper-card rounded-2xl p-4 border border-chai/15">
-        <h3 className="font-display font-bold text-chai-deep uppercase text-sm tracking-widest mb-1">Scan to Order</h3>
-        <p className="font-handwritten text-chai text-base mb-3">Students scan & order from phone</p>
-        <div className="rounded-xl border-2 border-dashed border-chai/30 bg-cream p-4 flex items-center justify-center">
-          <div className="w-44 h-44 grid grid-cols-10 grid-rows-10 gap-[2px] bg-cream">
-            {Array.from({ length: 100 }).map((_, i) => {
-              // deterministic pseudo-random pattern + corner finder squares
-              const row = Math.floor(i / 10);
-              const col = i % 10;
-              const inFinder =
-                (row < 3 && col < 3) ||
-                (row < 3 && col > 6) ||
-                (row > 6 && col < 3);
-              const finderOn =
-                inFinder &&
-                (row === 0 || row === 2 || row === 6 || row === 8 || col === 0 || col === 2 || col === 6 || col === 8);
-              const on = inFinder ? finderOn : ((i * 7 + 3) % 5 < 2);
-              return (
-                <div key={i} className={`rounded-[1px] ${on ? 'bg-chai-deep' : 'bg-transparent'}`} />
-              );
-            })}
-          </div>
         </div>
       </div>
 
