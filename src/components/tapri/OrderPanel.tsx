@@ -152,23 +152,59 @@ export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
         </div>
       </div>
 
-      {/* Smart suggestions */}
-      <div className="chalkboard rounded-xl p-3">
+      {/* Smart suggestion - dark featured card */}
+      <div className="rounded-2xl p-4 bg-chai-deep border-2 border-saffron/40 shadow-warm">
         <div className="flex items-center gap-1.5 mb-2">
-          <Zap className="w-4 h-4 text-saffron" />
-          <span className="font-handwritten text-saffron text-lg leading-none">Smart Suggestions</span>
+          <Sparkles className="w-4 h-4 text-saffron" />
+          <span className="text-saffron text-xs font-bold uppercase tracking-widest">Smart Suggestion</span>
         </div>
-        <div className="space-y-1.5">
-          {SUGGESTIONS.map(s => (
+        <p className="font-handwritten text-cream text-xl leading-snug text-center mb-3">
+          "{SUGGESTIONS[0].group.split(' ')[0]} usually orders 50 teas at 4 PM"
+        </p>
+        <button
+          onClick={() => applySuggestion(SUGGESTIONS[0].presetItems, SUGGESTIONS[0].group)}
+          className="w-full py-3 rounded-full bg-saffron hover:bg-saffron/90 text-chai-deep font-bold text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] shadow-card"
+        >
+          <RotateCw className="w-4 h-4" />
+          Quick Reorder · 50 ☕
+        </button>
+        <div className="mt-3 pt-3 border-t border-cream/10 space-y-1.5">
+          {SUGGESTIONS.slice(1).map(s => (
             <button
               key={s.group}
               onClick={() => applySuggestion(s.presetItems, s.group)}
-              className="w-full text-left text-xs text-cream/90 hover:text-saffron transition py-1 border-b border-cream/10 last:border-0"
+              className="w-full text-left text-xs text-cream/80 hover:text-saffron transition py-1"
             >
               <div className="font-semibold">{s.group}</div>
               <div className="opacity-70 text-[11px]">{s.items}</div>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Scan to Order */}
+      <div className="paper-card rounded-2xl p-4 border border-chai/15">
+        <h3 className="font-display font-bold text-chai-deep uppercase text-sm tracking-widest mb-1">Scan to Order</h3>
+        <p className="font-handwritten text-chai text-base mb-3">Students scan & order from phone</p>
+        <div className="rounded-xl border-2 border-dashed border-chai/30 bg-cream p-4 flex items-center justify-center">
+          <div className="w-44 h-44 grid grid-cols-10 grid-rows-10 gap-[2px] bg-cream">
+            {Array.from({ length: 100 }).map((_, i) => {
+              // deterministic pseudo-random pattern + corner finder squares
+              const row = Math.floor(i / 10);
+              const col = i % 10;
+              const inFinder =
+                (row < 3 && col < 3) ||
+                (row < 3 && col > 6) ||
+                (row > 6 && col < 3);
+              const finderOn =
+                inFinder &&
+                (row === 0 || row === 2 || row === 6 || row === 8 || col === 0 || col === 2 || col === 6 || col === 8);
+              const on = inFinder ? finderOn : ((i * 7 + 3) % 5 < 2);
+              return (
+                <div key={i} className={`rounded-[1px] ${on ? 'bg-chai-deep' : 'bg-transparent'}`} />
+              );
+            })}
+          </div>
         </div>
       </div>
 
