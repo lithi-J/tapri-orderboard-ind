@@ -18,7 +18,7 @@ interface OrderPanelProps {
   onPopper?: () => void;
 }
 
-export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
+export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
   const [activeCat, setActiveCat] = useState<typeof CATEGORIES[number]['id']>('tea');
   const [cart, setCart] = useState<Record<string, number>>({});
   const [groupName, setGroupName] = useState('');
@@ -54,7 +54,8 @@ export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
     preset.forEach(p => { next[p.id] = p.qty; });
     setCart(next);
     setGroupName(group);
-    toast.success('Smart suggestion loaded ✨');
+    onPopper?.();
+    toast.success('🎉 Quick reorder loaded — fire the kettle!');
   };
 
   const handlePlace = () => {
@@ -182,24 +183,40 @@ export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
         </div>
       </div>
 
-      {/* Smart suggestions */}
-      <div className="chalkboard rounded-xl p-3">
-        <div className="flex items-center gap-1.5 mb-2">
+      {/* Smart suggestions — dark "chalkboard" cards with quick reorder buttons */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
           <Zap className="w-4 h-4 text-saffron" />
-          <span className="font-handwritten text-saffron text-lg leading-none">Smart Suggestions</span>
+          <span className="font-display font-extrabold text-saffron text-xs uppercase tracking-widest">
+            Smart Suggestions
+          </span>
         </div>
-        <div className="space-y-1.5">
-          {SUGGESTIONS.map(s => (
-            <button
+        {SUGGESTIONS.map(s => {
+          const totalQty = s.presetItems.reduce((a, b) => a + b.qty, 0);
+          const firstItem = MENU.find(m => m.id === s.presetItems[0].id);
+          return (
+            <div
               key={s.group}
-              onClick={() => applySuggestion(s.presetItems, s.group)}
-              className="w-full text-left text-xs text-cream/90 hover:text-saffron transition py-1 border-b border-cream/10 last:border-0"
+              className="chalkboard rounded-xl p-3 border-2 border-chalkboard/50 shadow-card"
             >
-              <div className="font-semibold">{s.group}</div>
-              <div className="opacity-70 text-[11px]">{s.items}</div>
-            </button>
-          ))}
-        </div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Zap className="w-3.5 h-3.5 text-saffron fill-saffron" />
+                <span className="font-display font-extrabold text-saffron text-[11px] uppercase tracking-widest">
+                  Smart Suggestion
+                </span>
+              </div>
+              <p className="font-handwritten text-cream text-base leading-snug mb-2.5">
+                "{s.items}"
+              </p>
+              <button
+                onClick={() => applySuggestion(s.presetItems, s.group)}
+                className="w-full bg-gradient-saffron text-chai-deep font-display font-bold py-2 rounded-full text-sm hover:scale-[1.03] active:scale-95 transition shadow-warm flex items-center justify-center gap-1.5"
+              >
+                Quick Reorder · {totalQty} {firstItem?.emoji ?? '☕'}
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Customer details */}
