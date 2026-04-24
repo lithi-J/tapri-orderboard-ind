@@ -1,17 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Plus, Minus, Send, Zap, QrCode } from 'lucide-react';
+import { Plus, Minus, Send, Sparkles, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MENU, CATEGORIES, SUGGESTIONS, type Order } from '@/lib/tapri-data';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 
 interface OrderPanelProps {
   onPlace: (o: Order) => void;
@@ -90,31 +83,9 @@ export const OrderPanel = ({ onPlace }: OrderPanelProps) => {
 
   return (
     <aside className="paper-card rounded-2xl p-4 md:p-5 flex flex-col gap-4 h-fit lg:sticky lg:top-24">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-xl font-bold text-chai-deep">Place Order</h2>
-          <p className="font-handwritten text-chai text-base -mt-0.5">Tap, count, send 🚀</p>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="icon" className="border-chai/30 text-chai hover:bg-chai/10">
-              <QrCode className="w-5 h-5" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="paper-card">
-            <DialogHeader>
-              <DialogTitle className="text-chai-deep">Scan to Order ☕</DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col items-center gap-3 py-2">
-              <div className="w-56 h-56 rounded-xl bg-cream border-4 border-chai/30 p-3 grid grid-cols-8 grid-rows-8 gap-0.5">
-                {Array.from({ length: 64 }).map((_, i) => (
-                  <div key={i} className={`rounded-[2px] ${Math.random() > 0.5 ? 'bg-chai-deep' : 'bg-transparent'}`} />
-                ))}
-              </div>
-              <p className="font-handwritten text-xl text-chai">Scan to skip the queue!</p>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <div>
+        <h2 className="font-display text-xl font-bold text-chai-deep">Place Order</h2>
+        <p className="font-handwritten text-chai text-base -mt-0.5">Tap, count, send 🚀</p>
       </div>
 
       {/* Category tabs */}
