@@ -4,6 +4,7 @@ import { OrderPanel } from '@/components/tapri/OrderPanel';
 import { OrderQueue } from '@/components/tapri/OrderQueue';
 import { VendorDashboard } from '@/components/tapri/VendorDashboard';
 import { Confetti } from '@/components/tapri/Confetti';
+import { PopperBurst } from '@/components/tapri/PopperBurst';
 import { useOrders } from '@/hooks/use-orders';
 import { toast } from 'sonner';
 
@@ -29,6 +30,7 @@ const Index = () => {
   const [status, setStatus] = useState<ShopStatus>('open');
   const [soundOn, setSoundOn] = useState(true);
   const [festMode, setFestMode] = useState(false);
+  const [popper, setPopper] = useState(0);
   const initialised = useRef(false);
 
   const liveCount = orders.filter(o => o.status !== 'completed').length;
@@ -63,7 +65,7 @@ const Index = () => {
       />
 
       <main className="max-w-[1600px] mx-auto px-3 md:px-6 py-5 grid grid-cols-1 lg:grid-cols-[320px_1fr_300px] gap-4 md:gap-5">
-        <OrderPanel onPlace={handlePlace} />
+        <OrderPanel onPlace={handlePlace} onPopper={() => setPopper(p => p + 1)} />
 
         <section className="space-y-4 min-w-0">
           <div className="flex items-end justify-between flex-wrap gap-2">
