@@ -13,7 +13,7 @@ interface OrderCardProps {
   onDragStart: (id: string) => void;
 }
 
-const useCountdown = (target: string) => {
+const useCountdown = (target: string | number) => {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -56,9 +56,8 @@ export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCard
     <div
       draggable
       onDragStart={() => onDragStart(order.id)}
-      className={`relative paper-card rounded-2xl p-4 cursor-grab active:cursor-grabbing transition-all hover:-translate-y-1 hover:shadow-warm animate-bounce-in ${
-        isUrgent ? 'urgent-glow border-urgent/60 border-2' : ''
-      } ${isPickedUp ? 'opacity-90' : ''}`}
+      className={`relative paper-card rounded-2xl p-4 cursor-grab active:cursor-grabbing transition-all hover:-translate-y-1 hover:shadow-warm animate-bounce-in ${isUrgent ? 'urgent-glow border-urgent/60 border-2' : ''
+        } ${isPickedUp ? 'opacity-90' : ''}`}
     >
       {showStamp && <PickedUpStamp />}
 
@@ -117,11 +116,12 @@ export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCard
           <Button
             size="sm"
             onClick={() => onAdvance(order.id, nextStatus)}
-            className={`flex-1 font-semibold ${
-              order.status === 'ready'
+            className={`flex-1 font-semibold ${order.status === 'ready'
                 ? 'bg-neon text-chai-deep hover:bg-neon-glow'
-                : 'bg-gradient-chai text-cream hover:opacity-90'
-            }`}
+                : order.status === 'pending'
+                  ? 'bg-gradient-saffron text-chai-deep hover:opacity-90'
+                  : 'bg-gradient-chai text-cream hover:opacity-90'
+              }`}
           >
             {order.status === 'pending' && 'Start Brewing'}
             {order.status === 'preparing' && 'Mark Ready'}
@@ -129,7 +129,7 @@ export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCard
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         ) : (
-          <div className="flex-1 text-center text-xs text-muted-foreground py-2 font-handwritten text-base">
+          <div className="flex-1 text-center text-muted-foreground py-2 font-handwritten text-base">
             ✓ Served · {totalQty} items
           </div>
         )}

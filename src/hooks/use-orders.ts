@@ -1,85 +1,116 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { Order, OrderStatus } from '@/lib/tapri-data';
+import { useSocket } from './use-socket';
+import { toast } from 'sonner';
 
-const STORAGE_KEY = 'tapri-orders-v1';
-
-const seedOrders = (): Order[] => {
-  const now = Date.now();
-  return [
-    {
-      id: 'ord-1001',
-      groupName: 'CSE Lab Team',
-      customerName: 'Rahul Sharma',
-      phone: '98765 43210',
-      items: [
-        { id: 'masala-chai', name: 'Masala Chai', emoji: '☕', qty: 25, price: 15 },
-        { id: 'samosa', name: 'Samosa', emoji: '🥟', qty: 10, price: 15 },
-      ],
-      total: 25 * 15 + 10 * 15,
-      pickupTime: new Date(now + 8 * 60 * 1000).toISOString(),
-      status: 'preparing',
-      createdAt: now - 5 * 60 * 1000,
-    },
-    {
-      id: 'ord-1002',
-      groupName: 'ECE Fest Crew',
-      customerName: 'Priya Nair',
-      phone: '91234 56780',
-      items: [
-        { id: 'kulhad-chai', name: 'Kulhad Chai', emoji: '🍵', qty: 50, price: 25 },
-      ],
-      total: 50 * 25,
-      pickupTime: new Date(now + 2 * 60 * 1000).toISOString(),
-      status: 'pending',
-      createdAt: now - 2 * 60 * 1000,
-      urgent: true,
-    },
-    {
-      id: 'ord-1003',
-      groupName: 'Hostel Block C',
-      customerName: 'Arjun Mehta',
-      phone: '99887 76655',
-      items: [
-        { id: 'maggi', name: 'Maggi', emoji: '🍜', qty: 15, price: 30 },
-        { id: 'cold-coffee', name: 'Cold Coffee', emoji: '🧋', qty: 10, price: 45 },
-      ],
-      total: 15 * 30 + 10 * 45,
-      pickupTime: new Date(now + 20 * 60 * 1000).toISOString(),
-      status: 'ready',
-      createdAt: now - 15 * 60 * 1000,
-    },
-  ];
-};
+const API_BASE = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/orders`
+  : 'http://localhost:8080/api/orders';
 
 export const useOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const { socket } = useSocket();
 
-  useEffect(() => {
+  // Fetch initial orders from backend
+  const fetchOrders = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setOrders(JSON.parse(raw));
+      const res = await fetch(API_BASE);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data);
       } else {
-        setOrders(seedOrders());
+        console.error('[useOrders] Failed to fetch orders:', res.status);
       }
-    } catch {
-      setOrders(seedOrders());
+    } catch (error) {
+      console.error('[useOrders] Network error fetching orders:', error);
     }
-    setLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-  }, [orders, loaded]);
+    fetchOrders();
+  }, [fetchOrders]);
 
-  const addOrder = useCallback((o: Order) => setOrders(prev => [o, ...prev]), []);
-  const updateStatus = useCallback((id: string, status: OrderStatus) => {
+  // Real-time updates via Socket.io
+  useEffect(() => {
+    if (!socket) return;
+
+    // Server creates order → everyone gets it
+    socket.on('newOrder', (newOrder: Order) => {
+      setOrders(prev => {
+        if (prev.find(o => o.id === newOrder.id)) return prev;
+        toast.success(`New order from ${newOrder.groupName}! ☕`);
+        return [newOrder, ...prev];
+      });
+    });
+
+    // Server updates status → sync all clients
+    socket.on('orderStatusUpdated', (updatedOrder: Order) => {
+      setOrders(prev =>
+        prev.map(o => (o.id === updatedOrder.id ? updatedOrder : o))
+      );
+    });
+
+    // Server deletes order → remove from all clients
+    socket.on('orderDeleted', (id: string) => {
+      setOrders(prev => prev.filter(o => o.id !== id));
+    });
+
+    return () => {
+      socket.off('newOrder');
+      socket.off('orderStatusUpdated');
+      socket.off('orderDeleted');
+    };
+  }, [socket]);
+
+  // POST /api/orders — backend generates the final ID
+  const addOrder = useCallback(async (o: Omit<Order, 'id'> & { id?: string }) => {
+    try {
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(o),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('[useOrders] Failed to place order:', err);
+        toast.error('Failed to place order. Try again.');
+      }
+      // UI update is handled by the socket 'newOrder' event
+    } catch (error) {
+      console.error('[useOrders] Network error placing order:', error);
+      toast.error('Network error. Order not placed.');
+    }
+  }, []);
+
+  // PATCH /api/orders/:id/status — optimistic update, rollback on failure
+  const updateStatus = useCallback(async (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)));
-  }, []);
-  const removeOrder = useCallback((id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error('Status update failed');
+    } catch (error) {
+      console.error('[useOrders] Failed to update status:', error);
+      toast.error('Failed to update order status.');
+      fetchOrders(); // rollback
+    }
+  }, [fetchOrders]);
+
+  // DELETE /api/orders/:id — optimistic update, rollback on failure
+  const removeOrder = useCallback(async (id: string) => {
     setOrders(prev => prev.filter(o => o.id !== id));
-  }, []);
+    try {
+      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+    } catch (error) {
+      console.error('[useOrders] Failed to remove order:', error);
+      toast.error('Failed to delete order.');
+      fetchOrders(); // rollback
+    }
+  }, [fetchOrders]);
 
   return { orders, addOrder, updateStatus, removeOrder };
 };
