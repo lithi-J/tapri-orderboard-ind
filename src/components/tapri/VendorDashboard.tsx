@@ -23,8 +23,6 @@ export const VendorDashboard = ({ orders }: Props) => {
       const hoursAgo = Math.floor((now - o.createdAt) / (1000 * 60 * 60));
       if (hoursAgo >= 0 && hoursAgo < 12) buckets[11 - hoursAgo] += 1;
     });
-    // ensure non-zero seed for visual
-    if (buckets.every(b => b === 0)) return [1, 2, 1, 3, 2, 4, 3, 5, 4, 6, 5, 7];
     return buckets;
   }, [orders]);
   const maxBar = Math.max(...chartData, 1);
@@ -35,7 +33,7 @@ export const VendorDashboard = ({ orders }: Props) => {
       <div className="rounded-2xl p-5 bg-gradient-chai text-cream shadow-warm relative overflow-hidden">
         <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-saffron/20 blur-2xl" />
         <div className="relative">
-          <div className="flex items-center gap-2 text-saffron text-sm font-handwritten text-lg">
+          <div className="flex items-center gap-2 text-saffron font-handwritten text-lg">
             <IndianRupee className="w-4 h-4" />
             Today's Revenue
           </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, PartyPopper, Moon, Sun } from 'lucide-react';
+import { PartyPopper, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TeaCupLogo } from './TeaCupLogo';
+import { NotificationSystem } from './NotificationSystem';
 
 type Status = 'open' | 'busy' | 'closed';
 
@@ -9,24 +10,20 @@ interface HeaderProps {
   status: Status;
   onStatusChange: (s: Status) => void;
   liveCount: number;
-  soundOn: boolean;
-  onSoundToggle: () => void;
   festMode: boolean;
   onFestToggle: () => void;
 }
 
 const STATUS_MAP: Record<Status, { label: string; classes: string; dot: string }> = {
-  open:   { label: 'OPEN',   classes: 'bg-neon/20 text-neon border-neon/60',         dot: 'bg-neon' },
-  busy:   { label: 'BUSY',   classes: 'bg-saffron/20 text-saffron border-saffron/60', dot: 'bg-saffron' },
-  closed: { label: 'CLOSED', classes: 'bg-urgent/15 text-urgent border-urgent/50',    dot: 'bg-urgent' },
+  open: { label: 'OPEN', classes: 'bg-neon/20 text-neon border-neon/60', dot: 'bg-neon' },
+  busy: { label: 'BUSY', classes: 'bg-saffron/20 text-saffron border-saffron/60', dot: 'bg-saffron' },
+  closed: { label: 'CLOSED', classes: 'bg-urgent/15 text-urgent border-urgent/50', dot: 'bg-urgent' },
 };
 
 export const Header = ({
   status,
   onStatusChange,
   liveCount,
-  soundOn,
-  onSoundToggle,
   festMode,
   onFestToggle,
 }: HeaderProps) => {
@@ -52,7 +49,7 @@ export const Header = ({
           <TeaCupLogo size={52} />
           <div className="leading-tight">
             <h1 className="text-2xl md:text-3xl font-display font-extrabold text-cream tracking-wide uppercase">
-              Tapri Orders <span className="ml-1">🍵</span>
+              Tapri Tales <span className="ml-1">🍵</span>
             </h1>
             <p className="font-handwritten text-saffron text-lg -mt-1">Bulk chai, zero chaos</p>
           </div>
@@ -83,27 +80,21 @@ export const Header = ({
             )}
           </div>
 
+          {/* Notifications */}
+          <NotificationSystem />
+
           {/* Fest mode (party popper icon) */}
           <button
             onClick={onFestToggle}
             aria-label="Toggle fest mode"
-            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition hover:scale-110 ${
-              festMode
+            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition hover:scale-110 ${festMode
                 ? 'bg-gradient-saffron border-saffron-glow shadow-warm animate-pulse'
                 : 'bg-cream/10 border-cream/30 hover:bg-cream/20'
-            }`}
+              }`}
           >
             <PartyPopper className={`w-5 h-5 ${festMode ? 'text-chai-deep' : 'text-saffron'}`} />
           </button>
 
-          {/* Sound */}
-          <button
-            onClick={onSoundToggle}
-            aria-label="Toggle sound"
-            className="w-10 h-10 rounded-full border-2 border-cream/30 bg-cream/10 hover:bg-cream/20 text-cream flex items-center justify-center transition hover:scale-110"
-          >
-            {soundOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-          </button>
 
           {/* Theme toggle */}
           <button

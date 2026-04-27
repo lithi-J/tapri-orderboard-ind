@@ -14,11 +14,12 @@ import {
 } from '@/components/ui/dialog';
 
 interface OrderPanelProps {
-  onPlace: (o: Order) => void;
+  onPlace: (o: Omit<Order, 'id'>) => void;
   onPopper?: () => void;
+  onCelebrate?: () => void;
 }
 
-export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
+export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) => {
   const [activeCat, setActiveCat] = useState<typeof CATEGORIES[number]['id']>('tea');
   const [cart, setCart] = useState<Record<string, number>>({});
   const [groupName, setGroupName] = useState('');
@@ -55,6 +56,7 @@ export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
     setCart(next);
     setGroupName(group);
     onPopper?.();
+    onCelebrate?.();
     toast.success('🎉 Quick reorder loaded — fire the kettle!');
   };
 
@@ -67,8 +69,8 @@ export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
       toast.error('Add some items first');
       return;
     }
-    const order: Order = {
-      id: `ord-${Date.now()}`,
+    // Note: id is omitted — the backend (OrderService.placeOrder) generates the canonical ID
+    const order = {
       groupName: groupName.trim(),
       customerName: customerName.trim(),
       phone: phone.trim(),
@@ -78,7 +80,7 @@ export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
       }),
       total,
       pickupTime: new Date(Date.now() + pickupMins * 60 * 1000).toISOString(),
-      status: 'pending',
+      status: 'pending' as const,
       createdAt: Date.now(),
       urgent: pickupMins <= 10,
     };
@@ -125,11 +127,10 @@ export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
           <button
             key={c.id}
             onClick={() => setActiveCat(c.id)}
-            className={`flex-1 py-2 px-1 rounded-lg text-xs font-semibold transition ${
-              activeCat === c.id
+            className={`flex-1 py-2 px-1 rounded-lg text-xs font-semibold transition ${activeCat === c.id
                 ? 'bg-gradient-chai text-cream shadow-card'
                 : 'text-chai-deep/70 hover:bg-cream'
-            }`}
+              }`}
           >
             <div className="text-base">{c.emoji}</div>
             {c.label}
@@ -144,9 +145,8 @@ export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
           return (
             <div
               key={item.id}
-              className={`rounded-xl border p-3 flex items-center gap-3 transition ${
-                qty > 0 ? 'bg-saffron/10 border-saffron/40' : 'bg-cream border-border hover:border-chai/30'
-              }`}
+              className={`rounded-xl border p-3 flex items-center gap-3 transition ${qty > 0 ? 'bg-saffron/10 border-saffron/40' : 'bg-cream border-border hover:border-chai/30'
+                }`}
             >
               <div className="text-2xl">{item.emoji}</div>
               <div className="flex-1 min-w-0">
@@ -242,11 +242,10 @@ export const OrderPanel = ({ onPlace, onPopper }: OrderPanelProps) => {
               <button
                 key={m}
                 onClick={() => setPickupMins(m)}
-                className={`flex-1 py-1.5 rounded-md text-xs font-semibold border transition ${
-                  pickupMins === m
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold border transition ${pickupMins === m
                     ? 'bg-chai text-cream border-chai'
                     : 'bg-cream text-chai border-chai/20 hover:border-chai/50'
-                }`}
+                  }`}
               >
                 {m}m
               </button>
