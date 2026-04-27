@@ -9,6 +9,7 @@ import { createNotificationRouter } from './routes/notificationRoutes';
 dotenv.config();
 
 const app = express();
+export { app };
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -69,4 +70,8 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
