@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Plus, Minus, Send, Zap, QrCode } from 'lucide-react';
+import { Plus, Minus, Send, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MENU, CATEGORIES, SUGGESTIONS, type Order } from '@/lib/tapri-data';
+import { type Order, CATEGORIES } from '@/lib/tapri-data';
+import { useMenu } from '@/hooks/use-menu';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -19,17 +20,47 @@ interface OrderPanelProps {
   onCelebrate?: () => void;
 }
 
+/** Stable decorative QR pattern (no Math.random per render). */
+function useQrDecorPattern() {
+  return useMemo(
+    () =>
+      Array.from({ length: 64 }, (_, i) => {
+        const row = Math.floor(i / 8);
+        const col = i % 8;
+        return (row * 3 + col * 5) % 7 !== 0;
+      }),
+    []
+  );
+}
+
 export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) => {
-  const [activeCat, setActiveCat] = useState<typeof CATEGORIES[number]['id']>('tea');
+  const { menu, loading: menuLoading, error: menuError } = useMenu();
+  const qrCells = useQrDecorPattern();
+
+  const [activeCat, setActiveCat] = useState<(typeof CATEGORIES)[number]['id']>('tea');
   const [cart, setCart] = useState<Record<string, number>>({});
   const [groupName, setGroupName] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [pickupMins, setPickupMins] = useState(15);
 
-  const items = useMemo(() => MENU.filter(m => m.category === activeCat), [activeCat]);
+  const menuBlocked = menuLoading || Boolean(menuError);
+  const items = useMemo(() => menu.filter(m => m.category === activeCat), [activeCat, menu]);
+
+  const bulkTeaItem = useMemo(() => {
+    const teaItems = menu.filter(m => m.category === 'tea');
+    return (
+      teaItems.find(
+        m =>
+          m.id.toLowerCase().includes('masala') ||
+          m.name.toLowerCase().includes('masala') ||
+          m.name.toLowerCase().includes('chai')
+      ) ?? teaItems[0]
+    );
+  }, [menu]);
 
   const updateQty = (id: string, delta: number) => {
+    if (menuBlocked) return;
     setCart(c => {
       const next = (c[id] || 0) + delta;
       const copy = { ...c };
@@ -39,28 +70,25 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
     });
   };
 
-  const setBulk = (id: string, qty: number) => setCart(c => ({ ...c, [id]: qty }));
+  const setBulk = (id: string, qty: number) => {
+    if (menuBlocked || !id) return;
+    setCart(c => ({ ...c, [id]: qty }));
+  };
 
   const total = useMemo(() => {
     return Object.entries(cart).reduce((sum, [id, qty]) => {
-      const item = MENU.find(m => m.id === id);
+      const item = menu.find(m => m.id === id);
       return sum + (item ? item.price * qty : 0);
     }, 0);
-  }, [cart]);
+  }, [cart, menu]);
 
   const totalCups = useMemo(() => Object.values(cart).reduce((a, b) => a + b, 0), [cart]);
 
-  const applySuggestion = (preset: { id: string; qty: number }[], group: string) => {
-    const next: Record<string, number> = {};
-    preset.forEach(p => { next[p.id] = p.qty; });
-    setCart(next);
-    setGroupName(group);
-    onPopper?.();
-    onCelebrate?.();
-    toast.success('🎉 Quick reorder loaded — fire the kettle!');
-  };
-
   const handlePlace = () => {
+    if (menuBlocked) {
+      toast.error('Wait for the menu to load');
+      return;
+    }
     if (!groupName.trim() || !customerName.trim() || !phone.trim()) {
       toast.error('Fill group, name & phone');
       return;
@@ -69,15 +97,23 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
       toast.error('Add some items first');
       return;
     }
-    // Note: id is omitted — the backend (OrderService.placeOrder) generates the canonical ID
+    const lineItems = Object.entries(cart)
+      .map(([id, qty]) => {
+        const m = menu.find(x => x.id === id);
+        return m ? { id, name: m.name, emoji: m.emoji, qty, price: m.price } : null;
+      })
+      .filter(Boolean) as Order['items'];
+
+    if (lineItems.length !== Object.keys(cart).length) {
+      toast.error('Some cart items are no longer on the menu. Clear cart and try again.');
+      return;
+    }
+
     const order = {
       groupName: groupName.trim(),
       customerName: customerName.trim(),
       phone: phone.trim(),
-      items: Object.entries(cart).map(([id, qty]) => {
-        const m = MENU.find(x => x.id === id)!;
-        return { id, name: m.name, emoji: m.emoji, qty, price: m.price };
-      }),
+      items: lineItems,
       total,
       pickupTime: new Date(Date.now() + pickupMins * 60 * 1000).toISOString(),
       status: 'pending' as const,
@@ -85,6 +121,7 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
       urgent: pickupMins <= 10,
     };
     onPlace(order);
+    onCelebrate?.();
     toast.success(`Order placed for ${groupName}! ☕`);
     setCart({});
     setGroupName('');
@@ -111,8 +148,8 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
             </DialogHeader>
             <div className="flex flex-col items-center gap-3 py-2">
               <div className="w-56 h-56 rounded-xl bg-cream border-4 border-chai/30 p-3 grid grid-cols-8 grid-rows-8 gap-0.5">
-                {Array.from({ length: 64 }).map((_, i) => (
-                  <div key={i} className={`rounded-[2px] ${Math.random() > 0.5 ? 'bg-chai-deep' : 'bg-transparent'}`} />
+                {qrCells.map((on, i) => (
+                  <div key={i} className={`rounded-[2px] ${on ? 'bg-chai-deep' : 'bg-transparent'}`} />
                 ))}
               </div>
               <p className="font-handwritten text-xl text-chai">Scan to skip the queue!</p>
@@ -121,16 +158,22 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
         </Dialog>
       </div>
 
+      {menuError && (
+        <div className="rounded-lg border border-urgent/40 bg-urgent/10 px-3 py-2 text-sm text-chai-deep">{menuError}</div>
+      )}
+
       {/* Category tabs */}
-      <div className="flex gap-1.5 bg-secondary p-1 rounded-xl">
+      <div className={`flex gap-1.5 bg-secondary p-1 rounded-xl dark:bg-zinc-900/60 ${menuBlocked ? 'opacity-60 pointer-events-none' : ''}`}>
         {CATEGORIES.map(c => (
           <button
             key={c.id}
+            type="button"
             onClick={() => setActiveCat(c.id)}
-            className={`flex-1 py-2 px-1 rounded-lg text-xs font-semibold transition ${activeCat === c.id
+            className={`flex-1 py-2 px-1 rounded-lg text-xs font-semibold transition ${
+              activeCat === c.id
                 ? 'bg-gradient-chai text-cream shadow-card'
-                : 'text-chai-deep/70 hover:bg-cream'
-              }`}
+                : 'text-chai-deep/70 hover:bg-cream dark:hover:bg-zinc-900/70'
+            }`}
           >
             <div className="text-base">{c.emoji}</div>
             {c.label}
@@ -140,99 +183,110 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
 
       {/* Items */}
       <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1 -mr-1">
-        {items.map(item => {
-          const qty = cart[item.id] || 0;
-          return (
-            <div
-              key={item.id}
-              className={`rounded-xl border p-3 flex items-center gap-3 transition ${qty > 0 ? 'bg-saffron/10 border-saffron/40' : 'bg-cream border-border hover:border-chai/30'
+        {menuLoading && (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Loading menu…
+          </div>
+        )}
+        {!menuLoading && !menuError && items.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No items in this category.
+          </div>
+        )}
+        {!menuLoading &&
+          !menuError &&
+          items.map(item => {
+            const qty = cart[item.id] || 0;
+            return (
+              <div
+                key={item.id}
+                className={`rounded-xl border p-3 flex items-center gap-3 transition dark:bg-zinc-900/70 dark:border-amber-200/15 dark:hover:border-amber-200/30 ${
+                  qty > 0 ? 'bg-saffron/10 border-saffron/40 dark:bg-amber-400/10' : 'bg-cream border-border hover:border-chai/30'
                 }`}
-            >
-              <div className="text-2xl">{item.emoji}</div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm text-chai-deep truncate">{item.name}</div>
-                <div className="text-xs text-chai">₹{item.price}</div>
+              >
+                <div className="text-2xl">{item.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-chai-deep truncate dark:text-amber-50">{item.name}</div>
+                  <div className="text-xs text-chai dark:text-amber-200">₹{item.price}</div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 border-chai/30 dark:border-amber-200/25 dark:bg-zinc-950/30 dark:text-amber-50 dark:hover:bg-zinc-900"
+                    disabled={menuBlocked}
+                    onClick={() => updateQty(item.id, -1)}
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
+                  <span className="w-8 text-center font-bold text-chai-deep tabular-nums dark:text-amber-50">{qty}</span>
+                  <Button
+                    size="icon"
+                    className="h-7 w-7 bg-chai hover:bg-chai-deep text-cream dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
+                    disabled={menuBlocked}
+                    onClick={() => updateQty(item.id, 1)}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button size="icon" variant="outline" className="h-7 w-7 border-chai/30" onClick={() => updateQty(item.id, -1)}>
-                  <Minus className="w-3 h-3" />
-                </Button>
-                <span className="w-8 text-center font-bold text-chai-deep tabular-nums">{qty}</span>
-                <Button size="icon" className="h-7 w-7 bg-chai hover:bg-chai-deep text-cream" onClick={() => updateQty(item.id, 1)}>
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {/* Bulk quick buttons */}
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Bulk Add (Masala Chai)</p>
-        <div className="grid grid-cols-3 gap-2">
-          {[10, 25, 50].map(n => (
-            <button
-              key={n}
-              onClick={() => setBulk('masala-chai', n)}
-              className="py-2 rounded-lg bg-gradient-saffron text-chai-deep font-bold text-sm hover:scale-105 transition shadow-card"
-            >
-              {n} cups
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Smart suggestions — dark "chalkboard" cards with quick reorder buttons */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5">
-          <Zap className="w-4 h-4 text-saffron" />
-          <span className="font-display font-extrabold text-saffron text-xs uppercase tracking-widest">
-            Smart Suggestions
-          </span>
-        </div>
-        {SUGGESTIONS.map(s => {
-          const totalQty = s.presetItems.reduce((a, b) => a + b.qty, 0);
-          const firstItem = MENU.find(m => m.id === s.presetItems[0].id);
-          return (
-            <div
-              key={s.group}
-              className="chalkboard rounded-xl p-3 border-2 border-chalkboard/50 shadow-card"
-            >
-              <div className="flex items-center gap-1.5 mb-1">
-                <Zap className="w-3.5 h-3.5 text-saffron fill-saffron" />
-                <span className="font-display font-extrabold text-saffron text-[11px] uppercase tracking-widest">
-                  Smart Suggestion
-                </span>
-              </div>
-              <p className="font-handwritten text-cream text-base leading-snug mb-2.5">
-                "{s.items}"
-              </p>
+      {bulkTeaItem && !menuBlocked && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+            Bulk Add ({bulkTeaItem.name})
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {[10, 25, 50].map(n => (
               <button
-                onClick={() => applySuggestion(s.presetItems, s.group)}
-                className="w-full bg-gradient-saffron text-chai-deep font-display font-bold py-2 rounded-full text-sm hover:scale-[1.03] active:scale-95 transition shadow-warm flex items-center justify-center gap-1.5"
+                key={n}
+                type="button"
+                onClick={() => setBulk(bulkTeaItem.id, n)}
+                className="py-2 rounded-lg bg-gradient-saffron text-chai-deep font-bold text-sm hover:scale-105 transition shadow-card"
               >
-                Quick Reorder · {totalQty} {firstItem?.emoji ?? '☕'}
+                {n} cups
               </button>
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Customer details */}
-      <div className="space-y-2">
+      <div className={`space-y-2 ${menuBlocked ? 'opacity-60 pointer-events-none' : ''}`}>
         <div>
           <Label className="text-xs text-chai-deep">Group / Team</Label>
-          <Input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="e.g. CSE Lab Team" className="bg-cream border-chai/20" />
+          <Input
+            value={groupName}
+            onChange={e => setGroupName(e.target.value)}
+            placeholder="e.g. CSE Lab Team"
+            className="bg-cream border-chai/20 dark:bg-zinc-900/70 dark:border-amber-200/20 dark:text-amber-50 dark:placeholder:text-amber-50/50"
+            disabled={menuBlocked}
+          />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
             <Label className="text-xs text-chai-deep">Name</Label>
-            <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Your name" className="bg-cream border-chai/20" />
+            <Input
+              value={customerName}
+              onChange={e => setCustomerName(e.target.value)}
+              placeholder="Your name"
+              className="bg-cream border-chai/20 dark:bg-zinc-900/70 dark:border-amber-200/20 dark:text-amber-50 dark:placeholder:text-amber-50/50"
+              disabled={menuBlocked}
+            />
           </div>
           <div>
             <Label className="text-xs text-chai-deep">Phone</Label>
-            <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="98765 43210" className="bg-cream border-chai/20" />
+            <Input
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="98765 43210"
+              className="bg-cream border-chai/20 dark:bg-zinc-900/70 dark:border-amber-200/20 dark:text-amber-50 dark:placeholder:text-amber-50/50"
+              disabled={menuBlocked}
+            />
           </div>
         </div>
         <div>
@@ -241,11 +295,14 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
             {[10, 15, 30, 60].map(m => (
               <button
                 key={m}
+                type="button"
                 onClick={() => setPickupMins(m)}
-                className={`flex-1 py-1.5 rounded-md text-xs font-semibold border transition ${pickupMins === m
-                    ? 'bg-chai text-cream border-chai'
-                    : 'bg-cream text-chai border-chai/20 hover:border-chai/50'
-                  }`}
+                disabled={menuBlocked}
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold border transition ${
+                  pickupMins === m
+                    ? 'bg-chai text-cream border-chai dark:bg-amber-500 dark:text-zinc-950 dark:border-amber-300/50'
+                    : 'bg-cream text-chai border-chai/20 hover:border-chai/50 dark:bg-zinc-900/70 dark:text-amber-50 dark:border-amber-200/20 dark:hover:border-amber-200/40'
+                }`}
               >
                 {m}m
               </button>
@@ -262,7 +319,8 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
         </div>
         <Button
           onClick={handlePlace}
-          className="w-full bg-gradient-chai text-cream font-bold text-base py-6 rounded-xl shadow-warm hover:scale-[1.02] hover:shadow-glow-neon transition"
+          disabled={menuBlocked}
+          className="w-full bg-gradient-chai text-cream font-bold text-base py-6 rounded-xl shadow-warm hover:scale-[1.02] hover:shadow-glow-neon transition disabled:opacity-50"
         >
           <Send className="w-4 h-4 mr-2" />
           Place Order

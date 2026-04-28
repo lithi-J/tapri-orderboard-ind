@@ -48,6 +48,38 @@ export const migrate = async () => {
       );
     `);
 
+    // Menu Items Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        emoji TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        category TEXT NOT NULL,
+        tags JSONB NOT NULL DEFAULT '[]'::jsonb
+      );
+    `);
+
+    await client.query(`
+      ALTER TABLE menu_items
+      ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+    `);
+
+    await client.query(`
+      ALTER TABLE menu_items
+      ADD COLUMN IF NOT EXISTS tags JSONB NOT NULL DEFAULT '[]'::jsonb;
+    `);
+
+    // Suggestions Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS suggestions (
+        group_name TEXT PRIMARY KEY,
+        items_text TEXT NOT NULL,
+        preset_items JSONB NOT NULL DEFAULT '[]'::jsonb
+      );
+    `);
+
     console.log('[db]: Auto-migrations completed successfully.');
   } catch (err) {
     console.error('[db]: Migration error:', err);

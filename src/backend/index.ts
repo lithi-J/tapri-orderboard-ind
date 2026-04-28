@@ -5,6 +5,10 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import orderRoutes from './routes/orderRoutes';
 import { createNotificationRouter } from './routes/notificationRoutes';
+import { createMenuRouter } from './routes/menuRoutes';
+import { SupabaseMenuRepository } from './repositories/SupabaseMenuRepository';
+import { SupabaseSuggestionRepository } from './repositories/SupabaseSuggestionRepository';
+import { pool } from './db';
 
 dotenv.config();
 
@@ -39,9 +43,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Initialize Menu System
+const menuRepo = new SupabaseMenuRepository(pool);
+const suggestionRepo = new SupabaseSuggestionRepository(pool);
+const menuRouter = createMenuRouter(menuRepo, suggestionRepo);
+
 // API Routes
 app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRouter);
+app.use('/api/menu', menuRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
