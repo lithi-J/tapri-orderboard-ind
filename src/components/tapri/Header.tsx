@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { PartyPopper, Moon, Sun } from 'lucide-react';
+import { PartyPopper, Moon, Sun, ClipboardList } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { TeaCupLogo } from './TeaCupLogo';
 import { NotificationSystem } from './NotificationSystem';
@@ -29,6 +30,7 @@ export const Header = ({
 }: HeaderProps) => {
   const meta = STATUS_MAP[status];
   const [dark, setDark] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -95,6 +97,15 @@ export const Header = ({
             <PartyPopper className={`w-5 h-5 ${festMode ? 'text-chai-deep' : 'text-saffron'}`} />
           </button>
 
+
+          {/* Menu Card */}
+          <button
+            onClick={() => navigate('/menu')}
+            aria-label="Menu Card"
+            className="w-10 h-10 rounded-full border-2 border-cream/30 bg-cream/10 hover:bg-cream/20 text-cream flex items-center justify-center transition hover:scale-110"
+          >
+            <ClipboardList className="w-4 h-4" />
+          </button>
 
           {/* Theme toggle */}
           <button

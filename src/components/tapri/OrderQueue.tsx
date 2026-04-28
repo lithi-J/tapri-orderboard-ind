@@ -36,24 +36,24 @@ export const OrderQueue = ({ orders, onUpdateStatus, onDelete }: OrderQueueProps
             onDragOver={(e) => { e.preventDefault(); setOverCol(col.id); }}
             onDragLeave={() => setOverCol(null)}
             onDrop={() => handleDrop(col.id)}
-            className={`rounded-2xl p-3 border-2 border-dashed transition min-h-[260px] ${col.ring} ${col.bg} ${
+            className={`rounded-2xl p-3 border-2 border-dashed transition min-h-[260px] dark:bg-zinc-900/55 ${col.ring} ${col.bg} ${
               isOver ? 'ring-2 ring-saffron scale-[1.01]' : ''
             }`}
           >
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${col.dot} animate-pulse`} />
-                <h3 className="font-display font-extrabold text-chai-deep uppercase text-sm tracking-widest">
+                <h3 className="font-display font-extrabold text-chai-deep uppercase text-sm tracking-widest dark:text-amber-50">
                   {meta.label}
                 </h3>
               </div>
-              <span className="bg-cream text-chai-deep text-xs font-extrabold rounded-full px-2.5 py-0.5 min-w-[26px] text-center border border-chai/20">
+              <span className="bg-cream text-chai-deep text-xs font-extrabold rounded-full px-2.5 py-0.5 min-w-[26px] text-center border border-chai/20 dark:bg-amber-50 dark:text-zinc-900 dark:border-amber-200/40">
                 {colOrders.length}
               </span>
             </div>
             <div className="space-y-3">
               {colOrders.length === 0 && (
-                <div className="text-center py-10 font-handwritten text-chai/40 text-lg">
+                <div className="text-center py-10 font-handwritten text-chai/50 text-lg dark:text-amber-50/75">
                   Drop orders here ↓
                 </div>
               )}

@@ -66,14 +66,14 @@ export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCard
         <div className="flex items-start gap-2.5 min-w-0">
           <TeaFillProgress stage={STAGE_BY_STATUS[order.status]} brewing={isBrewing} />
           <div className="min-w-0">
-            <h3 className="font-display font-extrabold text-chai-deep uppercase tracking-wide truncate text-sm">
+            <h3 className="font-display font-extrabold text-chai-deep uppercase tracking-wide truncate text-sm dark:text-amber-50">
               {order.groupName}
             </h3>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-amber-50/75">
               <User className="w-3 h-3" />
               <span className="truncate">{order.customerName}</span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-amber-50/75">
               <Phone className="w-3 h-3" />
               {order.phone}
             </div>
@@ -86,27 +86,27 @@ export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCard
       </div>
 
       {/* Items */}
-      <div className="bg-cream rounded-lg p-2 mb-3 space-y-1 border border-dashed border-chai/20">
+      <div className="bg-cream rounded-lg p-2 mb-3 space-y-1 border border-dashed border-chai/20 dark:bg-zinc-950/85 dark:border-amber-200/15">
         {order.items.map(it => (
           <div key={it.id} className="flex items-center justify-between text-sm">
-            <span className="text-chai-deep">
+            <span className="text-chai-deep dark:text-amber-50">
               <span className="mr-1">{it.emoji}</span>{it.name}
             </span>
-            <span className="font-bold text-chai">×{it.qty}</span>
+            <span className="font-bold text-chai dark:text-amber-200">×{it.qty}</span>
           </div>
         ))}
       </div>
 
       {/* Footer */}
       <div className="flex items-center justify-between gap-2 mb-3">
-        <div className={`flex items-center gap-1 text-sm font-mono font-bold ${isUrgent ? 'text-urgent' : 'text-chai-deep'}`}>
+        <div className={`flex items-center gap-1 text-sm font-mono font-bold ${isUrgent ? 'text-urgent dark:text-rose-300' : 'text-chai-deep dark:text-amber-100'}`}>
           <Clock className="w-4 h-4" />
           <span>{overdue ? `+${label}` : label}</span>
           {overdue && <span className="text-[10px] uppercase font-sans">overdue</span>}
         </div>
         <div className="text-right">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</div>
-          <div className="font-display font-extrabold text-chai-deep">₹{order.total}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide dark:text-amber-50/70">Total</div>
+          <div className="font-display font-extrabold text-chai-deep dark:text-amber-100">₹{order.total}</div>
         </div>
       </div>
 
@@ -129,11 +129,11 @@ export const OrderCard = ({ order, onAdvance, onDelete, onDragStart }: OrderCard
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         ) : (
-          <div className="flex-1 text-center text-muted-foreground py-2 font-handwritten text-base">
+          <div className="flex-1 text-center text-muted-foreground py-2 font-handwritten text-base dark:text-amber-50/75">
             ✓ Served · {totalQty} items
           </div>
         )}
-        <Button size="icon" variant="ghost" onClick={() => onDelete(order.id)} className="text-muted-foreground hover:text-urgent">
+        <Button size="icon" variant="ghost" onClick={() => onDelete(order.id)} className="text-muted-foreground hover:text-urgent dark:text-amber-50/70 dark:hover:text-rose-300">
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>

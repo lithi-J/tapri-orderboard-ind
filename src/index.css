@@ -73,25 +73,42 @@
   }
 
   .dark {
-    --background: 25 15% 10%;
-    --foreground: 38 50% 92%;
-    --card: 25 18% 14%;
-    --card-foreground: 38 50% 92%;
-    --popover: 25 18% 14%;
-    --popover-foreground: 38 50% 92%;
+    --background: 24 18% 9%;
+    --foreground: 42 65% 94%;
+    --card: 24 20% 13%;
+    --card-foreground: 42 65% 94%;
+    --popover: 24 20% 13%;
+    --popover-foreground: 42 65% 94%;
     --primary: 32 95% 58%;
     --primary-foreground: 25 30% 12%;
-    --secondary: 25 20% 20%;
-    --secondary-foreground: 38 50% 92%;
-    --muted: 25 15% 18%;
-    --muted-foreground: 38 20% 70%;
+    --secondary: 28 22% 18%;
+    --secondary-foreground: 42 55% 90%;
+    --muted: 24 14% 16%;
+    --muted-foreground: 38 28% 78%;
     --accent: 32 95% 55%;
     --accent-foreground: 25 30% 12%;
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 25 15% 22%;
-    --input: 25 15% 22%;
+    --border: 32 20% 28%;
+    --input: 28 18% 22%;
     --ring: 32 95% 55%;
+    --chai: 28 62% 42%;
+    /* In dark mode, chai-deep is used widely for text; make it a dusky white for readability. */
+    --chai-deep: 42 40% 88%;
+    --chai-foam: 38 48% 82%;
+    --cream: 42 70% 92%;
+    --saffron: 34 92% 60%;
+    --saffron-glow: 38 100% 72%;
+    --matte-black: 24 14% 10%;
+    --neon: 140 78% 54%;
+    --neon-glow: 140 86% 68%;
+    --urgent: 0 88% 66%;
+    --chalkboard: 150 16% 16%;
+
+    --gradient-chai: linear-gradient(135deg, hsl(24 54% 20%), hsl(31 72% 38%));
+    --gradient-saffron: linear-gradient(135deg, hsl(34 92% 58%), hsl(24 88% 58%));
+    --gradient-cream: linear-gradient(180deg, hsl(28 18% 15%), hsl(24 16% 11%));
+    --gradient-neon: linear-gradient(135deg, hsl(140 72% 48%), hsl(158 74% 52%));
   }
 }
 
@@ -130,6 +147,14 @@
     background: linear-gradient(180deg, hsl(38 55% 97%), hsl(35 45% 93%));
     box-shadow: var(--shadow-card);
     border: 1px solid hsl(var(--border));
+  }
+
+  .dark .paper-card {
+    background:
+      linear-gradient(180deg, hsl(26 22% 16%), hsl(24 18% 11%)),
+      var(--paper-texture);
+    color: hsl(var(--cream));
+    box-shadow: 0 10px 30px -16px hsl(0 0% 0% / 0.65);
   }
 
   .neon-glow {
