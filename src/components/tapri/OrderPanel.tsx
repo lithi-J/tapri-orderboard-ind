@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { type Order, CATEGORIES } from '@/lib/tapri-data';
 import { useMenu } from '@/hooks/use-menu';
+import { TeaLoading } from './TeaLoading';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -184,9 +185,7 @@ export const OrderPanel = ({ onPlace, onPopper, onCelebrate }: OrderPanelProps) 
       {/* Items */}
       <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1 -mr-1">
         {menuLoading && (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Loading menu…
-          </div>
+          <TeaLoading className="border border-dashed border-border rounded-xl" />
         )}
         {!menuLoading && !menuError && items.length === 0 && (
           <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">

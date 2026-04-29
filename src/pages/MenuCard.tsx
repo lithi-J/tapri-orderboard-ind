@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Pencil, X, ArrowDown, Check } from 'lucide-react';
 import { TeaCupLogo } from '@/components/tapri/TeaCupLogo';
+import { TeaLoading } from '@/components/tapri/TeaLoading';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { MenuCardItem, MenuCardTag, MenuCategory } from '@/lib/menu-api-contract';
@@ -201,11 +202,7 @@ export default function MenuCard() {
 
         {/* Menu Content */}
         <div className="p-4 sm:p-6 md:p-10 space-y-8 sm:space-y-10 md:space-y-12 dark:bg-zinc-950/60">
-          {loading && (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
-              Loading menu...
-            </div>
-          )}
+          {loading && <TeaLoading className="border border-dashed border-border rounded-xl" />}
 
           {!loading && menuToRender.map((category) => (
             <div key={category.id} className="space-y-4">
